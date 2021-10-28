@@ -2,6 +2,21 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
+const adjacencies = [
+  [0, 1, 0, 1, 1, 0, 0, 0, 0],
+  [1, 0, 1, 1, 1, 1, 0, 0, 0],
+  [0, 1, 0, 0, 1, 1, 0, 0, 0],
+  [1, 1, 0, 0, 1, 0, 1, 1, 0],
+  [1, 1, 1, 1, 0, 1, 1, 1, 1],
+  [0, 1, 1, 0, 1, 0, 0, 1, 1],
+  [0, 0, 0, 1, 1, 0, 0, 1, 0],
+  [0, 0, 0, 1, 1, 1, 1, 0, 1],
+  [0, 0, 0, 0, 1, 1, 0, 1, 0],
+]
+
+  function isValidMove(from, to) {
+    return adjacencies[from][to];
+  }
 
   function Square(props) {
     return (
@@ -15,23 +30,63 @@ import './index.css';
   }
   
   class Board extends React.Component {
+    /* This component handles the states of the squares and the 
+    order of turns. */
     constructor(props) {
       super(props);
       this.state = {
         squares: Array(9).fill(null),
         xIsNext: true,
+        turns: 0,
+        isFirstClick: true,
+        firstClick: null,
+        secondClick: null,
       };
     }
 
     handleClick(i) {
-      if (calculateWinner(this.state.squares) || this.state.squares[i]) {
+      if (calculateWinner(this.state.squares)) {
         return;
       }
+      if (this.state.turns < 6) {
+        if (this.state.squares[i]) {
+          return;
+        } else {
+          this.updateSquares(i)
+        }
+      } 
+      else if (this.state.isFirstClick) {
+        if (
+          (this.state.xIsNext && this.state.squares[i] == 'X')
+          || (!this.state.xIsNext && this.state.squares[i] == 'O')
+          ) {
+            this.setState({
+              firstClick: i,
+              isFirstClick: false,
+            })
+          }
+      } 
+      else if (!this.state.isFirstClick) {
+        if (
+          isValidMove(this.state.firstClick, i) 
+          && this.state.squares[i] == null
+          ) {
+            this.updateSquares(i, this.state.firstClick);
+        }
+      }
+    }
+
+    updateSquares(i, reset) {
       const updatedSquares = this.state.squares.slice();
       updatedSquares[i] = this.state.xIsNext ? 'X' : 'O';
+      if (arguments.length === 2) {
+        updatedSquares[reset] = null;
+      }
       this.setState({
         squares: updatedSquares,
         xIsNext: !this.state.xIsNext,
+        turns: this.state.turns + 1,
+        isFirstClick: true
       });
     }
 
