@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
+const CENTER_SQUARE = 4;
+let boardImage;
+
 const adjacencies = [
   [0, 1, 0, 1, 1, 0, 0, 0, 0],
   [1, 0, 1, 1, 1, 1, 0, 0, 0],
@@ -12,7 +15,7 @@ const adjacencies = [
   [0, 0, 0, 1, 1, 0, 0, 1, 0],
   [0, 0, 0, 1, 1, 1, 1, 0, 1],
   [0, 0, 0, 0, 1, 1, 0, 1, 0],
-]
+];
 
   function isValidMove(from, to) {
     return adjacencies[from][to];
@@ -40,40 +43,79 @@ const adjacencies = [
         turns: 0,
         isFirstClick: true,
         firstClick: null,
-        secondClick: null,
+        middleWasOccupied: null,
+        middleWasVacated: null,
       };
     }
 
     handleClick(i) {
       if (calculateWinner(this.state.squares)) {
+        // Ignore clicks if the game is over.
+        return;
+      }
+      if (!this.state.squares[CENTER_SQUARE] && this.state.middleWasOccupied) {
+        this.setState({
+          middleWasVacated: true,
+          middleWasOccupied: false,
+        })
+        return;
+      }
+      else {
+        this.setState({middleWasVacated: false})
+      }
+      // If the center-move rule is violated, reset the board 1 move.
+      if (
+        this.state.middleWasOccupied
+        && !this.state.middleWasVacated
+      ){
+        this.setState({
+          squares: boardImage,
+          xIsNext: !this.state.xIsNext,
+          middleWasOccupied: false,
+          middleWasVacated: false,
+        })
         return;
       }
       if (this.state.turns < 6) {
+        // If we are in the "adding pieces" stage of the game.
         if (this.state.squares[i]) {
+          // Ignore the click if the space is already taken by anything.
           return;
         } else {
+          // Otherwise add the piece.
           this.updateSquares(i)
         }
       } 
       else if (this.state.isFirstClick) {
-        if (
-          (this.state.xIsNext && this.state.squares[i] == 'X')
-          || (!this.state.xIsNext && this.state.squares[i] == 'O')
-          ) {
+        // If this is the click to select a piece to move.
+        if (this.playerMatchesSquare(i)) {
+          // If the square being clicked is owned by the player who is up.
             this.setState({
               firstClick: i,
               isFirstClick: false,
-            })
+            });
           }
       } 
       else if (!this.state.isFirstClick) {
+        // If we are evaluating a second possible valid click
         if (
+          // check that the destination is reachable and empty
           isValidMove(this.state.firstClick, i) 
           && this.state.squares[i] == null
           ) {
+            this.setState({
+              middleWasOccupied: this.playerMatchesSquare(CENTER_SQUARE)
+            });
+            // update the board
+            boardImage = this.state.squares.slice();
             this.updateSquares(i, this.state.firstClick);
         }
       }
+    }
+
+    playerMatchesSquare(i) {
+      return ((this.state.xIsNext && this.state.squares[i] == 'X')
+          || (!this.state.xIsNext && this.state.squares[i] == 'O'))
     }
 
     updateSquares(i, reset) {
@@ -86,7 +128,7 @@ const adjacencies = [
         squares: updatedSquares,
         xIsNext: !this.state.xIsNext,
         turns: this.state.turns + 1,
-        isFirstClick: true
+        isFirstClick: true,
       });
     }
 
